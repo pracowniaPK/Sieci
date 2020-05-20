@@ -22,6 +22,11 @@ class hopfield:
             self.x[i] = np.dot(self.w[i], self.x)
             self.x[i] = self.activation_f(self.x[i])
 
+    def update_sync(self):
+        self.x = np.dot(self.w, self.x)
+        self.x = [self.activation_f(x) for x in self.x]
+
+
 
 if __name__ == "__main__":
     w = np.array([[0, -2/3, 2/3], [-2/3, 0, -2/3], [2/3, -2/3, 0]])
@@ -33,14 +38,28 @@ if __name__ == "__main__":
     previous = []
     for i in range(3):
         h.update_async()
-        print(h.x)
         if h.x == previous:
             break 
         previous = h.x.copy()
 
-    print()
+    print('\nasync:')
     for p in product(*[[-1, 1]]*3):
         h.x = list(p)
-        h.update_async()
-        same = '*' if list(p) == h.x else ''
-        print(list(p), ' -> ', h.x, same)
+        xs = [h.x.copy()]
+        while True:
+            h.update_async()
+            xs.append(h.x.copy())
+            if xs[-1] in xs[:-1]:
+                break
+        print(' -> '.join([str(x) for x in xs]))
+
+    print('\nsync:')
+    for p in product(*[[-1, 1]]*3):
+        h.x = list(p)
+        xs = [h.x.copy()]
+        while True:
+            h.update_sync()
+            xs.append(h.x.copy())
+            if xs[-1] in xs[:-1]:
+                break
+        print(' -> '.join([str(x) for x in xs]))
