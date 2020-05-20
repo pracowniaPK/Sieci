@@ -10,7 +10,7 @@ class Net:
         self.fi = fi
         self.d_fi = d_fi
 
-    def forward(self, x):
+    def forward(self, x, verbose=False):
         self.x0 = np.ones(3)
         self.x0[1:3] = x
 
@@ -21,28 +21,27 @@ class Net:
         self.z2 = np.dot(self.w2, self.x1)
         self.x2 = self.fi(self.z2)
 
+        if verbose:
+            print(x, '->', round(self.x2, 2))
+
         return self.x2
 
     def back(self, x, d, ro):
-        self.forward(x)
+        # self.forward(x)
 
         d_x2 = (d - self.x2)  #  x2
         d_z2 = self.d_fi(self.z2) * d_x2
         d_w2 = ro * self.x1 * d_z2
 
         d_x1 = np.dot(self.w2[1:], d_z2)
-        # print(self.z1)
-        # print(self.d_fi(self.z1))
-        # print(d_x1)
         d_z1 = self.d_fi(self.z1) * d_x1
         d_w1 = ro * np.outer(d_z1, self.x0)
-        
+
+        return d_w1, d_w2
+ 
+    def update_w(self, d_w1, d_w2):
         self.w2 += d_w2
         self.w1 += d_w1
-        pass
-        # print(d_w2)
-        # print(d_w1)
-
 
 if __name__ == "__main__":
     w1 = [
@@ -50,11 +49,7 @@ if __name__ == "__main__":
         [.83, -.51, -.86]
     ]
     w2 = [.04, -.43, .48]
-    # w1 = [
-    #     [-6.06, -6.07, 2.45],
-    #     [-4.89, -4.89, 7.29]
-    # ]
-    # w2 = [-9.8, 9.48, -4.47]
+
     def fi(t):
         return 1/(1+e**(-t))
     def d_fi(t):
@@ -67,23 +62,37 @@ if __name__ == "__main__":
         [1, 1, 0],
     ]
 
+
+    print('metoda energii cząstokwych\nprzed:')
     nn = Net(w1, w2, fi, d_fi)
-
     for t in training_data:
-        print(nn.forward(t[:2]))
-    for _ in range(5000):
-        # print(nn.w1)
-        # print(nn.w2)
+        nn.forward(t[:2], verbose=True)
+    for _ in range(2000):
         for t in training_data:
-            # print(nn.forward(t[:2]))
-            # print()
             nn.forward(t[:2])
-            nn.back(t[:2], t[2], 0.5)
-            # print(np.round(np.absolute(t[2]-nn.forward(t[:2])), decimals=3))
-        # print()
-
-
+            d_w1, d_w2 =  nn.back(t[:2], t[2], 0.5)
+            nn.update_w(d_w1, d_w2)
+    print('\npo:')
     for t in training_data:
-        print(nn.forward(t[:2]))
+        nn.forward(t[:2], verbose=True)
 
+    # print('w1', nn.w1)
+    # print('w2', nn.w2)
+
+    print('\nmetoda energii całkowitej\nprzed:')
+    nn = Net(w1, w2, fi, d_fi)
+    for t in training_data:
+        nn.forward(t[:2], verbose=True)
+    for _ in range(20000):
+        d_w1 = np.zeros((2,3))
+        d_w2 = np.zeros((3))
+        for t in training_data:
+            nn.forward(t[:2])
+            d_w1_tmp, d_w2_tmp =  nn.back(t[:2], t[2], 0.5)
+            d_w1 += d_w1_tmp
+            d_w2 += d_w2_tmp
+        nn.update_w(d_w1, d_w2)
+    print('\npo:')
+    for t in training_data:
+        nn.forward(t[:2], verbose=True)
 
