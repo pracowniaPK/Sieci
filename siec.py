@@ -58,7 +58,7 @@ if __name__ == "__main__":
     def fi(t):
         return 1/(1+e**(-t))
     def d_fi(t):
-        return e**(-t)/(1+e**(-t))**2
+        return fi(t) * (1 - fi(t))
 
     training_data = [
         [0, 0, 0],
